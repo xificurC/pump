@@ -1,5 +1,5 @@
 (import chicken scheme)
-(use srfi-42 srfi-121 posix)
+(use srfi-42 srfi-121 posix matchable)
 (declare (uses files))
 
 (keyword-style #:prefix)
@@ -28,16 +28,27 @@
 
 (define (rgx irx #!key recurse dotfiles follow-symlinks type)
   "Find files matching regular expression"
-  (define entries (directory (base-directory) dotfiles))
-  (define (path-of entry) (make-pathname (base-directory) entry))
+  (define entries (map (cut make-pathname (base-directory) <>)
+                       (directory (base-directory) dotfiles)))
+  ;; TODO drop-non-matching discards directories but we might want to recurse
+  ;; so we probably cannot use drop-while and should use recurse-append somewhere
   (define (drop-non-matching l)
     (drop-while (lambda (e)
-                  (or (and type (not (eq? type (file-type (path-of e)))))
-                      (not (irregex-search irx e))))
+                  (or (and type (not (eq? type (file-type e))))
+                      (not (irregex-search irx (pathname-strip-directory e)))))
                 l))
+  (define (recurse-append l)
+    (if recurse
+        (match l
+          [((? directory? f) . r)
+           (append r (map (cut make-pathname f <>) (directory f)))]
+          [(f . r)
+           (display (string-append f " is not a directory"))
+           r])
+        (cdr l)))
   (make-unfold-generator null?
                          car
-                         (compose drop-non-matching cdr)
+                         (compose drop-non-matching recurse-append)
                          (drop-non-matching entries)))
 
 (define (pump)
