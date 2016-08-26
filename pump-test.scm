@@ -13,6 +13,8 @@
          (run (touch ,(make-pathname (base-directory) (sprintf "foo-~s.tmp" n)))))
   (run (mkdir ,(make-pathname (base-directory) "foo-0-dir")))
   (run (mkdir ,(make-pathname (list (base-directory) "foo-0-dir") "foo-0.tmp")))
+  (run (touch ,(make-pathname (base-directory) ".hidden-foo-0.tmp")))
+  (run (touch ,(make-pathname (list (base-directory) "foo-0-dir") ".hidden-foo-0.tmp")))
   (test "rgx PCRE works"
         (map (cut make-pathname (base-directory) <>) '("foo-0.tmp" "foo-1.tmp"))
         (strings-sort (generator->list (rgx "foo-[01]\\.tmp$"))))
@@ -26,8 +28,16 @@
         (list (make-pathname (base-directory) "foo-0.tmp"))
         (strings-sort (generator->list (rgx "foo-0" #:type 'regular-file))))
   (test "rgx recursion works"
-        (list (make-pathname (base-directory) "foo-0.tmp")
-              (make-pathname (list (base-directory) "foo-0-dir")
-                             "foo-0.tmp"))
+        (list (make-pathname (list (base-directory) "foo-0-dir")
+                             "foo-0.tmp")
+              (make-pathname (base-directory) "foo-0.tmp"))
         (strings-sort (generator->list (rgx "^foo-0\\.tmp$" #:recurse #t))))
+  (test "rgx dotfiles work"
+        (list (make-pathname (base-directory) ".hidden-foo-0.tmp"))
+        (strings-sort (generator->list (rgx '(: bos ".") #:dotfiles #t))))
+  (test "rgx recursive dotfiles work"
+        (list (make-pathname (list (base-directory) "foo-0-dir")
+                             ".hidden-foo-0.tmp")
+              (make-pathname (base-directory) ".hidden-foo-0.tmp"))
+        (strings-sort (generator->list (rgx '(: bos ".") #:dotfiles #t #:recurse #t))))
   (delete-directory (base-directory) #:recurse))

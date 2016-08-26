@@ -30,25 +30,23 @@
   "Find files matching regular expression"
   (define entries (map (cut make-pathname (base-directory) <>)
                        (directory (base-directory) dotfiles)))
-  ;; TODO drop-non-matching discards directories but we might want to recurse
-  ;; so we probably cannot use drop-while and should use recurse-append somewhere
   (define (drop-non-matching l)
-    (drop-while (lambda (e)
-                  (or (and type (not (eq? type (file-type e))))
-                      (not (irregex-search irx (pathname-strip-directory e)))))
-                l))
+    (let loop ([l l])
+      (match l
+        [(f . r) (if (and (or (not type) (eq? type (file-type f)))
+                          (irregex-search irx (pathname-strip-directory f)))
+                     (cons f (recurse-append l))
+                     (loop (recurse-append l)))]
+        ['() '()])))
   (define (recurse-append l)
     (if recurse
         (match l
-          [((? directory? f) . r)
-           (append r (map (cut make-pathname f <>) (directory f)))]
-          [(f . r)
-           (display (string-append f " is not a directory"))
-           r])
+          [((? directory? f) . r) (append r (map (cut make-pathname f <>) (directory f)))]
+          [(f . r) r])
         (cdr l)))
   (make-unfold-generator null?
                          car
-                         (compose drop-non-matching recurse-append)
+                         (o drop-non-matching cdr)
                          (drop-non-matching entries)))
 
 (define (pump)
