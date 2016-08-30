@@ -33,7 +33,11 @@
   (define (drop-non-matching l)
     (let loop ([l l])
       (match l
-        [(f . r) (if (and (or (not type) (eq? type (file-type f)))
+        [(f . r) (if (and (or (not type)
+                              (if (and (eq? type 'directory) (not follow-symlinks))
+                                  (and (directory? f) (not (symbolic-link? f)))
+                                  (eq? type (file-type f)))
+                              (and (symbolic-link? f) follow-symlinks))
                           (irregex-search irx (pathname-strip-directory f)))
                      (cons f (recurse-append l))
                      (loop (recurse-append l)))]
@@ -41,8 +45,12 @@
   (define (recurse-append l)
     (if recurse
         (match l
-          [((? directory? f) . r) (append r (map (cut make-pathname f <>) (directory f)))]
-          [(f . r) r])
+          [((? directory? f) . r)
+           (if (and (symbolic-link? f) (not follow-symlinks))
+               r
+               (append r (map (cut make-pathname f <>) (directory f dotfiles))))]
+          [(f . r)
+           r])
         (cdr l)))
   (make-unfold-generator null?
                          car
