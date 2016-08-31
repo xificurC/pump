@@ -7,6 +7,29 @@
 (parameterize ([base-directory "foo"])
   (test "base directory is foo" "foo" (base-directory)))
 
+(let ([root-dir (create-temporary-directory)])
+  (test-assert "simple create-directory-tree works"
+    (begin
+      (create-directory-tree root-dir '(foo (bar)))
+      (and (directory? "foo")
+           (regular-file? (make-pathname "foo" "bar")))))
+  (delete-directory root-dir #:recurse))
+
+(let ([root-dir (create-temporary-directory)])
+  (test-assert "simple check-directory-tree works"
+    (begin
+      (create-directory-tree root-dir '(foo (bar)))
+      (check-directory-tree root-dir '(foo (bar)))))
+  (delete-directory root-dir #:recurse))
+
+(let ([root-dir (create-temporary-directory)]
+      [spec '(foo (bar))])
+  (test-assert "create-directory-tree for files and folders works"
+    (begin
+      (create-directory-tree root-dir spec)
+      (check-directory-tree root-dir spec)))
+  (delete-directory root-dir #:recurse))
+
 (parameterize ([base-directory (create-temporary-directory)])
   (define (strings-sort l) (sort l string<?))
   (do-ec (:gen n (make-iota-generator 10))
@@ -52,3 +75,5 @@
               (make-pathname (list (base-directory) "foo-dir-link") "foo-1.tmp"))
         (strings-sort (generator->list (rgx '(: bos "foo-1.tmp" eos) #:type 'regular-file #:follow-symlinks #t #:recurse #t))))
   (delete-directory (base-directory) #:recurse))
+
+(test-exit)

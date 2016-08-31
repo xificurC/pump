@@ -17,6 +17,30 @@
           #t
           [(gen)])]))
 
+;; (define (with-current-directory dir thunk)
+;;   (let ([start-dir (current-directory)])
+;;     (dynamic-wind
+;;       (lambda () (current-directory dir))
+;;       thunk
+;;       (lambda () (current-directory start-dir)))))
+
+(define (create-file name)
+  (with-output-to-file name (constantly #t)))
+
+(define (create-directory-tree dir spec)
+  (match spec
+    [(? string? s) (create-file (make-pathname dir s))]
+    [(? symbol? s) (create-file (make-pathname dir (symbol->string s)))]
+    [(subdir subspec)])
+  (with-current-directory
+   dir
+   )
+  )
+
+(define (check-directory-tree dir spec)
+  #f
+  )
+
 ;; TODO globbing with two stars **
 
 ;; TODO add guard that checks if directory exists

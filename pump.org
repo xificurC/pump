@@ -1,0 +1,12 @@
+* Pump
+
+A utility for working with sets of files
+
+** Philosophy
+
+Write a pipeline of commands, each taking the results of the previous command.
+The commands execute lazily, requesting new values from the previous one as needed.
+
+** Usage
+
+$ pump :glob **/*.org :filter % :resolve :length :< 10 % :set-extension bar
