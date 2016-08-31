@@ -30,16 +30,31 @@
 (define (create-directory-tree dir spec)
   (match spec
     [(? string? s) (create-file (make-pathname dir s))]
-    [(? symbol? s) (create-file (make-pathname dir (symbol->string s)))]
-    [(subdir subspec)])
-  (with-current-directory
-   dir
-   )
-  )
+    [(? symbol? s) (create-directory-tree dir (symbol->string s))]
+    [(subdir subspecs)
+     (let ([subdir (make-pathname dir
+                                  (if (string? subdir)
+                                      subdir
+                                      (symbol->string subdir)))])
+       (create-directory subdir)
+       (for-each (cut create-directory-tree subdir <>) subspecs))]))
+
+(define (all? proc lst)
+  (match lst
+    ['() #t]
+    [(x . xs) (or (proc x) (all? proc xs))]))
 
 (define (check-directory-tree dir spec)
-  #f
-  )
+  (match spec
+    [(? string? s) (regular-file? s)]
+    [(? symbol? s) (check-directory-tree dir (symbol->string s))]
+    [(subdir subspecs)
+     (let ([subdir (make-pathname dir
+                                  (if (string? subdir)
+                                      subdir
+                                      (symbol->string subdir)))])
+       (and (directory? subdir)
+            (all? (cut check-directory-tree subdir <>) subspecs)))]))
 
 ;; TODO globbing with two stars **
 

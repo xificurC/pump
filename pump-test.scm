@@ -11,8 +11,8 @@
   (test-assert "simple create-directory-tree works"
     (begin
       (create-directory-tree root-dir '(foo (bar)))
-      (and (directory? "foo")
-           (regular-file? (make-pathname "foo" "bar")))))
+      (and (directory? (make-pathname root-dir "foo"))
+           (regular-file? (make-pathname (list root-dir "foo") "bar")))))
   (delete-directory root-dir #:recurse))
 
 (let ([root-dir (create-temporary-directory)])
@@ -23,7 +23,7 @@
   (delete-directory root-dir #:recurse))
 
 (let ([root-dir (create-temporary-directory)]
-      [spec '(foo (bar))])
+      [spec '(foo ((bar ((baz (file))))))])
   (test-assert "create-directory-tree for files and folders works"
     (begin
       (create-directory-tree root-dir spec)
