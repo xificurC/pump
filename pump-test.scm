@@ -15,6 +15,15 @@
            (regular-file? (make-pathname (list root-dir "foo") "bar")))))
   (delete-directory root-dir #:recurse))
 
+(let ([root-dir (create-temporary-directory)]
+      [perm #o755])
+  (test-assert "create-directory-tree file permissions work"
+        (begin
+          (create-directory-tree root-dir '(foo #:mode #o700))
+          (= perm
+             (bitwise-and (file-permissions (make-pathname root-dir "foo"))
+                          perm)))))
+
 (let ([root-dir (create-temporary-directory)])
   (test-assert "simple check-directory-tree works"
     (begin

@@ -1,6 +1,6 @@
 (import chicken scheme)
-(use srfi-42 srfi-121 posix matchable)
-(declare (uses files))
+(use srfi-42 srfi-121 matchable)
+(declare (uses files posix))
 
 (keyword-style #:prefix)
 
@@ -28,16 +28,35 @@
   (with-output-to-file name (constantly #t)))
 
 (define (create-directory-tree dir spec)
+  (define (filename? s) (or (string? s) (symbol? s)))
   (match spec
-    [(? string? s) (create-file (make-pathname dir s))]
-    [(? symbol? s) (create-directory-tree dir (symbol->string s))]
-    [(subdir subspecs)
-     (let ([subdir (make-pathname dir
-                                  (if (string? subdir)
-                                      subdir
-                                      (symbol->string subdir)))])
-       (create-directory subdir)
-       (for-each (cut create-directory-tree subdir <>) subspecs))]))
+    [(? filename? file)
+     (create-file (make-pathname dir (->string file)))]
+    [((? filename? path) . options)
+     (let ([path (make-pathname dir (->string path))])
+         (let loop ([args options]
+                 [mode 0]
+                 [owner (current-user-id)]
+                 [group (current-group-id)]
+                 [symlink? #f])
+        (match args
+          [(:mode mode . rest)
+           (loop rest mode owner group symlink?)]
+          [(:owner owner . rest)
+           (loop rest mode owner group symlink?)]
+          [(:group group . rest)
+           (loop rest mode owner group symlink?)]
+          [(:symlink path . rest)
+           (loop rest mode owner group path)]
+          [((? procedure? proc))
+           (call-with-output-file path proc)]
+          [((? string? str))
+           (with-output-to-file path (lambda () (write str)))]
+          ['()
+           (with-output-to-file path (constantly #t))]
+          [(subspecs)
+           (create-directory path)
+           (for-each (cut create-directory-tree path <>) subspecs)])))]))
 
 (define (all? proc lst)
   (match lst
