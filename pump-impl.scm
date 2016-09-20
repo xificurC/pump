@@ -34,29 +34,51 @@
      (create-file (make-pathname dir (->string file)))]
     [((? filename? path) . options)
      (let ([path (make-pathname dir (->string path))])
-         (let loop ([args options]
-                 [mode 0]
-                 [owner (current-user-id)]
-                 [group (current-group-id)]
-                 [symlink? #f])
-        (match args
-          [(:mode mode . rest)
-           (loop rest mode owner group symlink?)]
-          [(:owner owner . rest)
-           (loop rest mode owner group symlink?)]
-          [(:group group . rest)
-           (loop rest mode owner group symlink?)]
-          [(:symlink path . rest)
-           (loop rest mode owner group path)]
-          [((? procedure? proc))
-           (call-with-output-file path proc)]
-          [((? string? str))
-           (with-output-to-file path (lambda () (write str)))]
-          ['()
-           (with-output-to-file path (constantly #t))]
-          [(subspecs)
-           (create-directory path)
-           (for-each (cut create-directory-tree path <>) subspecs)])))]))
+       (let loop ([args options]
+                  [mode 0]
+                  [owner #f]
+                  [group #f]
+                  [symlink #f]
+                  [thunk #f])
+         (match args
+           [(:mode mode . rest)
+            (loop rest mode owner group symlink thunk)]
+           [(:owner owner . rest)
+            (loop rest mode owner group symlink thunk)]
+           [(:group group . rest)
+            (loop rest mode owner group symlink thunk)]
+           [(:symlink path . rest)
+            (loop rest mode owner group path thunk)]
+           [((? procedure? proc))
+            (loop '() mode owner group symlink
+                  (lambda ()
+                    (call-with-output-file path proc)))]
+           [((? string? str))
+            (loop '() mode owner group symlink
+                  (lambda ()
+                    (with-output-to-file path (lambda () (display str)))))]
+           ['()
+            (let ([thunk (or thunk (lambda ()
+                                     (with-output-to-file path (constantly #t))))])
+              (if symlink
+                  (create-symbolic-link symlink path)
+                  (begin
+                    (thunk)
+                    (when (not (zero? mode))
+                      (change-file-mode path mode))
+                    (when (or owner group)
+                      (let ([owner (or owner (current-user-id))]
+                            [group (or group (current-group-id))])
+                        (change-file-owner path owner group))))))]
+           [(subspecs)
+            (create-directory path)
+            (when (not (zero? mode))
+              (change-file-mode path mode))
+            (when (or owner group)
+              (let ([owner (or owner (current-user-id))]
+                    [group (or group (current-group-id))])
+                (change-file-owner path owner group)))
+            (for-each (cut create-directory-tree path <>) subspecs)])))]))
 
 (define (all? proc lst)
   (match lst
