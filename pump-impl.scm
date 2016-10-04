@@ -2,8 +2,6 @@
 (use srfi-42 srfi-121 matchable)
 (declare (uses files posix))
 
-(keyword-style #:prefix)
-
 (define-syntax :gen
   (syntax-rules (index)
     [(_ cc var (index i) expr)
@@ -41,14 +39,14 @@
                   [symlink #f]
                   [thunk #f])
          (match args
-           [(:mode mode . rest)
+           [('#:mode mode . rest)
             (loop rest mode owner group symlink thunk)]
-           [(:owner owner . rest)
+           [('#:owner owner . rest)
             (loop rest mode owner group symlink thunk)]
-           [(:group group . rest)
+           [('#:group group . rest)
             (loop rest mode owner group symlink thunk)]
-           [(:symlink path . rest)
-            (loop rest mode owner group path thunk)]
+           [('#:symlink sympath . rest)
+            (loop rest mode owner group sympath thunk)]
            [((? procedure? proc))
             (loop '() mode owner group symlink
                   (lambda ()

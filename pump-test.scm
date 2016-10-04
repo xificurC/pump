@@ -56,7 +56,7 @@
   (test "create-directory-tree directory permissions work"
         perm
         (begin
-          (create-directory-tree root-dir `(foo :mode ,perm ()))
+          (create-directory-tree root-dir `(foo #:mode ,perm ()))
           (bitwise-and perm
                        (file-permissions (make-pathname root-dir "foo"))))))
 
