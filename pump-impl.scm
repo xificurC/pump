@@ -76,24 +76,49 @@
               (let ([owner (or owner (current-user-id))]
                     [group (or group (current-group-id))])
                 (change-file-owner path owner group)))
-            (for-each (cut create-directory-tree path <>) subspecs)])))]))
+            (for-each (cut create-directory-tree path <>) subspecs)]
+           [other (error "Don't know what to do with" other)])))]
+    [other (error "Don't know what to do with" other)]))
 
 (define (all? proc lst)
   (match lst
     ['() #t]
     [(x . xs) (or (proc x) (all? proc xs))]))
 
+(define-syntax probe
+  (syntax-rules ()
+    [(probe var)
+     (let ([val var])
+       (printf "~s is ~s\n" 'var val)
+       (flush-output)
+       val)]))
+
 (define (check-directory-tree dir spec)
+  ;; (format #t "Working in ~s with ~s~n" dir spec)
+  (define (filename? s) (or (string? s) (symbol? s)))
   (match spec
-    [(? string? s) (regular-file? s)]
-    [(? symbol? s) (check-directory-tree dir (symbol->string s))]
-    [(subdir subspecs)
-     (let ([subdir (make-pathname dir
-                                  (if (string? subdir)
-                                      subdir
-                                      (symbol->string subdir)))])
-       (and (directory? subdir)
-            (all? (cut check-directory-tree subdir <>) subspecs)))]))
+    [(? filename? s) (regular-file? (make-pathname dir (->string s)))]
+    [((? filename? path) . options)
+     (let ([path (make-pathname dir (->string path))])
+       (let loop ([args options])
+         (match args
+           [('#:mode perm . rest)
+            (and (= perm (bitwise-and (file-permissions path) perm))
+                 (loop rest))]
+           [('#:symlink link . rest)
+            (and (symbolic-link? path)
+                 (string=? link (read-symbolic-link path))
+                 (loop rest))]
+           ['() #t]
+           [((subspec . subspecs))
+            ;; (format #t "Splitting on ~a and ~a~n" subspec subspecs)
+            (and (check-directory-tree path subspec)
+                 (check-directory-tree path subspecs))]
+           [other (error "Don't know what to do with" other)])))
+     ]
+    [(f . r) (and (check-directory-tree dir f) (check-directory-tree dir r))]
+    ['() #t]
+    [other (error "Don't know what to do with" other)]))
 
 ;; TODO globbing with two stars **
 

@@ -7,6 +7,7 @@
     [(probe var)
      (let ([val var])
        (printf "~s is ~s\n" 'var val)
+       (flush-output)
        val)]))
 
 (test "base directory is ." "." (base-directory))
@@ -65,6 +66,22 @@
     (begin
       (create-directory-tree root-dir '(foo (bar)))
       (check-directory-tree root-dir '(foo (bar)))))
+  (delete-directory root-dir #:recurse))
+
+(let ([root-dir (create-temporary-directory)])
+  (test-assert "check-directory-tree with #:mode works"
+    (begin
+      (create-directory-tree root-dir '(foo #:mode #o777))
+      (check-directory-tree root-dir '(foo #:mode #o777))))
+  (delete-directory root-dir #:recurse))
+
+(let ([root-dir (create-temporary-directory)]
+      [spec '(foo (bar (baz #:symlink "bar")))])
+  (test-assert "check-direcotry-tree with #:symlink works"
+    (begin
+      (create-directory-tree root-dir spec)
+      (check-directory-tree root-dir spec)
+      ))
   (delete-directory root-dir #:recurse))
 
 ;; add tests for check-directory-tree
