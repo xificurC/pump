@@ -109,6 +109,12 @@
             (and (symbolic-link? path)
                  (string=? link (read-symbolic-link path))
                  (loop rest))]
+           [('#:owner owner . rest)
+            (and (= (file-owner path) owner)
+                 (loop rest))]
+           [('#:group group . rest)
+            (and (= group (vector-ref (file-stat path) 4))
+                 (loop rest))]
            ['() #t]
            [((subspec . subspecs))
             ;; (format #t "Splitting on ~a and ~a~n" subspec subspecs)
