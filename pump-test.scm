@@ -89,6 +89,22 @@
 ;; owner
 ;; group
 ;; symlink
+(let ([root-dir (create-temporary-directory)]
+      [spec '(foo ())])
+  (test-assert "check-directory-tree checks for directories"
+    (begin
+      (create-directory-tree root-dir spec)
+      (check-directory-tree root-dir spec)))
+  (delete-directory root-dir #:recurse))
+
+(let ([root-dir (create-temporary-directory)]
+      [spec '(foo (bar (baz (qux))))]
+  (test-assert "check-directory-tree checks for deep directories"
+    (begin
+      (create-directory-tree root-dir spec)
+      (check-directory-tree root-dir spec)))
+  (delete-directory root-dir #:recurse))
+
 
 (let ([root-dir (create-temporary-directory)]
       [spec '(foo ((bar ((baz (file))))))])

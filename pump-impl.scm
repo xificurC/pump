@@ -116,9 +116,11 @@
             (and (= group (vector-ref (file-stat path) 4))
                  (loop rest))]
            ['() #t]
+           ['(()) (directory-exists? path)]
            [((subspec . subspecs))
             ;; (format #t "Splitting on ~a and ~a~n" subspec subspecs)
-            (and (check-directory-tree path subspec)
+            (and (directory-exists? path)
+                 (check-directory-tree path subspec)
                  (check-directory-tree path subspecs))]
            [other (error "Don't know what to do with" other)])))
      ]
