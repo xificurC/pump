@@ -59,7 +59,13 @@
         (begin
           (create-directory-tree root-dir `(foo #:mode ,perm ()))
           (bitwise-and perm
-                       (file-permissions (make-pathname root-dir "foo"))))))
+                       (file-permissions (make-pathname root-dir "foo")))))
+  (delete-directory root-dir #:recurse))
+
+(let ([root-dir (create-temporary-directory)])
+  (test-error "bogus list fails for create-directory-tree"
+              (create-directory-tree root-dir '(foo bar baz)))
+  (delete-directory root-dir #:recurse))
 
 (let ([root-dir (create-temporary-directory)])
   (test-assert "simple check-directory-tree works"
@@ -84,11 +90,6 @@
       ))
   (delete-directory root-dir #:recurse))
 
-;; add tests for check-directory-tree
-;; mode
-;; owner
-;; group
-;; symlink
 (let ([root-dir (create-temporary-directory)]
       [spec '(foo ())])
   (test-assert "check-directory-tree checks for directories"
@@ -105,6 +106,11 @@
       (check-directory-tree root-dir spec)))
   (delete-directory root-dir #:recurse))
 
+(let ([root-dir (create-temporary-directory)])
+  (test-error "bogus list fails for check-directory-tree"
+              (begin (create-directory-tree root-dir '(foo))
+                     (check-directory-tree root-dir '(foo bar baz))))
+  (delete-directory root-dir #:recurse))
 
 (let ([root-dir (create-temporary-directory)]
       [spec '(foo ((bar ((baz (file))))))])
@@ -143,6 +149,10 @@
                              "foo-0.tmp")
               (make-pathname (base-directory) "foo-0.tmp"))
         (strings-sort (generator->list (rgx "^foo-0\\.tmp$" #:recurse #t))))
+  (test "rgx recursion with directory filter works"
+        (list (make-pathname (list (base-directory) "foo-0-dir")
+                             "foo-0.tmp"))
+        (strings-sort (generator->list (rgx "^foo-0\\.tmp$" #:recurse #t #:type 'directory))))
   (test "rgx dotfiles work"
         (list (make-pathname (base-directory) ".hidden-foo-0.tmp"))
         (strings-sort (generator->list (rgx '(: bos ".") #:dotfiles #t))))
