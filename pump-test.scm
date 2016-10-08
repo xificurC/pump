@@ -100,15 +100,16 @@
 
 (parameterize ([base-directory (create-temporary-directory)])
   (define (strings-sort l) (sort l string<?))
-  (do-ec (:gen n (make-iota-generator 10))
-         (run (touch ,(make-pathname (base-directory) (sprintf "foo-~s.tmp" n)))))
-  (run (mkdir ,(make-pathname (base-directory) "foo-0-dir")))
-  (run (mkdir ,(make-pathname (list (base-directory) "foo-0-dir") "foo-0.tmp")))
-  (run (touch ,(make-pathname (base-directory) ".hidden-foo-0.tmp")))
-  (run (touch ,(make-pathname (list (base-directory) "foo-0-dir") ".hidden-foo-0.tmp")))
-  (run (touch ,(make-pathname (list (base-directory) "foo-0-dir") "foo-1.tmp")))
-  (run (ln -s ,(make-pathname (base-directory) "foo-0.tmp") ,(make-pathname (base-directory) "foo-0.lnk")))
-  (run (ln -s ,(make-pathname (base-directory) "foo-0-dir") ,(make-pathname (base-directory) "foo-dir-link")))
+  (receive (base top ext) (decompose-pathname (base-directory))
+    (create-directory-tree
+     base
+     `(,(format #f "~a.~a" top ext)
+       ((foo-0-dir ((foo-0.tmp ()) foo-1.tmp .hidden-foo-0.tmp))
+        (foo-0.lnk #:symlink ,(make-pathname (base-directory) "foo-0.tmp"))
+        ,@(map (cut format #f "foo-~a.tmp" <>) (list-ec (:range i 10) i))
+        (foo-dir-link #:symlink ,(make-pathname (base-directory) "foo-0-dir"))
+        (.hidden-foo-0.tmp)))))
+  ;; (run (tree -ap ,(base-directory)))
   (test "rgx PCRE works"
         (map (cut make-pathname (base-directory) <>) '("foo-0.tmp" "foo-1.tmp"))
         (strings-sort (generator->list (rgx "foo-[01]\\.tmp$"))))
