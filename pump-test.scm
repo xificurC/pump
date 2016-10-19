@@ -99,7 +99,7 @@
   (delete-directory root-dir #:recurse))
 
 (let ([root-dir (create-temporary-directory)]
-      [spec '(foo (bar (baz (qux))))]
+      [spec '(foo (bar (baz (qux))))])
   (test-assert "check-directory-tree checks for deep directories"
     (begin
       (create-directory-tree root-dir spec)
@@ -116,6 +116,15 @@
       [spec '(foo ((bar ((baz (file))))))])
   (test-assert "create-directory-tree for files and folders works"
     (begin
+      (create-directory-tree root-dir spec)
+      (check-directory-tree root-dir spec)))
+  (delete-directory root-dir #:recurse))
+
+(let ([root-dir (create-temporary-directory)]
+      [spec '(foo ((bar ()) baz))])
+  (test-assert "check-directory-tree twice in a row is a noop"
+    (begin
+      (create-directory-tree root-dir spec)
       (create-directory-tree root-dir spec)
       (check-directory-tree root-dir spec)))
   (delete-directory root-dir #:recurse))
